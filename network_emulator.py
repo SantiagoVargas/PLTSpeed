@@ -16,6 +16,7 @@ class NetworkEmulator():
             if _d not in self.domain_dict:
                 self.domain_dict[_d] = {}
                 for k, v in self.default.items():
+                    # Todo: See which domains get default values
                     self.domain_dict[_d][k] = v
 
     def setup_namespace(self):

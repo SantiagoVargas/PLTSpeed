@@ -103,36 +103,46 @@ def copyanything(src, dst):
             shutil.copy(src, dst)
         else: raise
 
-def setup_replay(domain_list):
+def setup_replay(domain_list, _archive):
     os.system('pkill go')
     #subprocess.call(['iptables', '-t', 'nat', '-A', 'OUTPUT', '-p', 'tcp', '--dport', '80' , '-j', 'DNAT', '--to-destination', '127.0.0.1:8080'])
     #subprocess.call(['iptables', '-t', 'nat', '-A', 'OUTPUT', '-p', 'tcp', '--dport', '443' , '-j', 'DNAT', '--to-destination', '127.0.0.1:8081'])
-    with cd('../catapult/web_page_replay_go/'):
-        for i, domain in enumerate(domain_list):
-            netns_b = 'netns-' + str(i + 1)
-            #veth_b = 'veth-' + str((i * 2) + 1)
-            #subprocess.call(['sysctl', '-w', 'net.ipv4.conf.' + veth_b + '.route_localnet=1'])
-            print(domain, netns_b)
-            print('Starting Web replay inside: {}: {}'.format(netns_b, domain))
-            _go = 'go'
-            _src = 'src/'
-            _cert ='--https_cert_file=../catapult/web_page_replay_go/wpr_cert.pem'
-            _key='--https_key_file=../catapult/web_page_replay_go/wpr_key.pem'
-            _archive = '~/archive.json'
-            _host = '--host=10.10.' + str(i + 1) + '.2'#TODO remove iptables by changing port t default 80 and 443
-            _host_ip = '10.10.' + str(i + 1) + '.2'#TODO remove iptables by changing port t default 80 and 443
-            _http_port = '--http_port=80'
-            _https_port = '--https_port=443'
-            _inject = '--inject_scripts=../catapult/web_page_replay_go/deterministic.js'
-            #subprocess.call(['ip', 'netns', 'exec', netns_b,'sysctl',  'net.ipv4.ip_forward=1'])
-            #subprocess.call(['ip', 'netns', 'exec', netns_b,'sysctl',  'net.ipv4.ip_forward=1'])
-            #subprocess.call(['ip', 'netns', 'exec', netns_b, 'iptables', '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp', '--dport', '80' , '-j', 'DNAT', '--to-destination', '127.0.0.1:80'])
-            #subprocess.call(['ip', 'netns', 'exec', netns_b, 'iptables', '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp', '--dport', '443' , '-j', 'DNAT', '--to-destination', '127.0.0.1:443'])
-            #subprocess.call(['ip', 'netns', 'exec', netns_b, 'iptables', '-t', 'nat', '-A', 'POSTROUTING', '-j', 'MASQUERADE'])
-            #subprocess.call(['iptables', '-t', 'nat', '-A', 'POSTROUTING', '-p', 'tcp', '--dport', '80' , '-j', 'SNAT', '--to-source', _host_ip])
-            #subprocess.call(['iptables', '-t', 'nat', '-A', 'POSTROUTING', '-p', 'tcp', '-d', '--dport', '443' , '-j', 'SNAT', '--to-source', _host_ip])
-            subprocess.Popen(['ip', 'netns', 'exec', netns_b, _go, 'run', _src + 'wpr.go', 'replay',_host,  _http_port, _https_port, _archive], shell=False)
+    replay_processes = []
+    for i, domain in enumerate(domain_list):
+        netns_b = 'netns-' + str(i + 1)
+        #veth_b = 'veth-' + str((i * 2) + 1)
+        #subprocess.call(['sysctl', '-w', 'net.ipv4.conf.' + veth_b + '.route_localnet=1'])
+        print('Starting Web replay inside: {}: {}'.format(netns_b, domain))
+        _go = '/usr/local/go/bin/go'
+        _src = '/home/savargas/go/src/github.com/catapult-project/catapult/web_page_replay_go/src/'
+        _cert ='--https_cert_file=/home/savargas/go/src/github.com/catapult-project/catapult/web_page_replay_go/wpr_cert.pem'
+        _key='--https_key_file=/home/savargas/go/src/github.com/catapult-project/catapult/web_page_replay_go/wpr_key.pem'
+        #_archive = '/home/savargas/archive.json'
+        _host = '--host=10.10.' + str(i + 1) + '.2'#TODO remove iptables by changing port t default 80 and 443
+        _host_ip = '10.10.' + str(i + 1) + '.2'#TODO remove iptables by changing port t default 80 and 443
+        _http_port = '--http_port=80'
+        _https_port = '--https_port=443'
+        _inject = '--inject_scripts=/home/savargas/go/src/github.com/catapult-project/catapult/web_page_replay_go/deterministic.js'
+        #subprocess.call(['ip', 'netns', 'exec', netns_b,'sysctl',  'net.ipv4.ip_forward=1'])
+        #subprocess.call(['ip', 'netns', 'exec', netns_b,'sysctl',  'net.ipv4.ip_forward=1'])
+        #subprocess.call(['ip', 'netns', 'exec', netns_b, 'iptables', '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp', '--dport', '80' , '-j', 'DNAT', '--to-destination', '127.0.0.1:80'])
+        #subprocess.call(['ip', 'netns', 'exec', netns_b, 'iptables', '-t', 'nat', '-A', 'PREROUTING', '-p', 'tcp', '--dport', '443' , '-j', 'DNAT', '--to-destination', '127.0.0.1:443'])
+        #subprocess.call(['ip', 'netns', 'exec', netns_b, 'iptables', '-t', 'nat', '-A', 'POSTROUTING', '-j', 'MASQUERADE'])
+        #subprocess.call(['iptables', '-t', 'nat', '-A', 'POSTROUTING', '-p', 'tcp', '--dport', '80' , '-j', 'SNAT', '--to-source', _host_ip])
+        #subprocess.call(['iptables', '-t', 'nat', '-A', 'POSTROUTING', '-p', 'tcp', '-d', '--dport', '443' , '-j', 'SNAT', '--to-source', _host_ip])
+        
+        # Create the unique archive for this domain
+        # This is an optimization for RAM
+        newArchive = 'archives/' + domain + '_archive.wprgo'
+        result = subprocess.run([_go, 'run', 'filterarchive.go', _archive, newArchive, domain])
+        if result.returncode:
+            print('We have problems!!!')
+
+        # Run the replay server
+        replay_process = subprocess.Popen(['ip', 'netns', 'exec', netns_b, _go, 'run', _src + 'wpr.go', 'replay',_host,  _http_port, _https_port, _cert, _key, _inject, newArchive], shell=False)
+        replay_processes.append(replay_process)
     print('Done.')
+    return replay_processes
  
 def setup_webserver(domain_list, _src):
     os.system('pkill nginx')
@@ -225,8 +235,9 @@ def ping_delays(domains, net_profile):
         ping_dict = unpickler.load()
     except EOFError:
         pass    
-    _probeId = 15397  #ZA
-    #_probeId = 22778 # US
+    # Todo: Remove this from being hardcoded
+    _probeId = 30516 #DZ
+
     for _d in domains:
         _ext = tldextract.extract(_d)
         _subdomain = _ext.subdomain
@@ -242,8 +253,12 @@ def ping_delays(domains, net_profile):
                 if res.rtt_median:
                     netp[_sd]['download_delay'] = str(int(res.rtt_median/2)) + 'ms'
                     netp[_sd]['upload_delay'] = str(int(res.rtt_median/2)) + 'ms'
+                    print('Set ping info')
+                else:
+                    print('Using default ping info')
         else:
             pass
+    f.close()
     return netp
 
 def populate_zone_file(_d_ip_dict):

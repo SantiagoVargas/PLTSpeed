@@ -153,12 +153,14 @@ class Resolver(ProxyResolver):
 
 def handle_sig(signum, frame):
     logger.info('pid=%d, got signal: %s, stopping...', os.getpid(), signal.Signals(signum).name)
+    if udp_server:
+        udp_server.stop()
     exit(0)
 
 
 def dns_delay(domains):
-    _probeId = 15397 #ZA
-    #_probeId = 22778 #US
+    # Todo: Remove hardcoding of the probe
+    _probeId = 30516 #DZ
     _file = open('ripe/dns_data', 'rb')
     #_file = open('/home/jnejati/PLTSpeed/ripe/us_dns_data_22778', 'rb')
     pcl = pickle.Unpickler(_file)
@@ -179,6 +181,7 @@ def dns_delay(domains):
                     dns_delay_dict[_sd] = res.responses[0].response_time
                 else:
                     dns_delay_dict[_sd] = 250.0 # Temp
+    _file.close()
     return dns_delay_dict
 
 if __name__ == '__main__':

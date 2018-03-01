@@ -1394,7 +1394,7 @@ class Trace():
                         # We are currently skipping about:blanks which occur before parse_0
                         # Update: no need if a clean start happens in testbed.
                         ###
-                        if _nodeData['startTime'] > self.G.node[_parse0Id]['startTime'] and not _nodeData['url'] == '':
+                        if _nodeData['startTime'] > self.G.node[_parse0Id]['startTime'] and not _nodeData['url'] in ['','about:blank']:
                             if len(self.networks_lookup_url[urldefrag(_nodeData['url'])[0]]) <= 1:
                                 _netowrk_nodeId = self.networks_lookup_url[urldefrag(_nodeData['url'])[0]][0]
                             else:

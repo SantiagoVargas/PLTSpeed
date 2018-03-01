@@ -1,0 +1,23 @@
+{
+  "name": "pltspeed",
+  "version": "0.0.0",
+  "description": "PLTSpeed =======================",
+  "main": "main.py",
+  "dependencies": {
+    "chrome-launcher": "^0.10.2",
+    "chrome-remote-interface": "^0.25.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jnejati/PLTSpeed.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/jnejati/PLTSpeed/issues"
+  },
+  "homepage": "https://github.com/jnejati/PLTSpeed#readme"
+}

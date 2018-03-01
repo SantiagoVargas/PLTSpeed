@@ -16,34 +16,32 @@ import subprocess
 import logging
 import timeit
 import csv 
+import sys
 
-def _change_resolv_conf():
+def _change_resolv_conf(ip):
     RESOLV_CONF = '/etc/resolv.conf'
     with open (RESOLV_CONF, 'w') as _f:
-        _f.write('nameserver         127.0.0.1\n')
+        _f.write('nameserver         '+str(ip)+'\n')
 
 
-def main():
-    default_net_profile =  {'download_rate':'5Mbit',
-                  'download_delay':'150ms',
-                  'download_loss':'0.0%',
-                  'upload_rate':'5Mbit',
-                  'upload_delay':'150ms',
-                  'upload_loss':'0.0%'}
+def main(input_file):
+    runs = 4
     start = timeit.default_timer()
-    input_file = 'africa.txt'
     _domains_dir = 'domains_list/'
+    archive_file = '/home/savargas/DevRegions/data/02_03_18_US_sites/recordings/recording5/archive.wprgo'
     config_file = 'confs/netProfiles.json'
-    _change_resolv_conf()
+    _change_resolv_conf('127.0.0.1')
     with open(config_file, 'r') as f:
         default_net_profile = json.load(f)[0]
         _path =  os.path.join(default_net_profile['device_type'] + '_' + default_net_profile['name'])
         webDnsSetup.clear_folder(_path)
-    with open('res/' + input_file) as _sites:
+    with open(input_file) as _sites:
+        # _sites = [x for x in _sites]
         for _site in _sites:
             _site = _site.strip()
-            logging.info('Navigating to: ' + _site)
+            print('Navigating to: ' + _site)
             s1 = urlparse(_site)
+            print(s1)
             _site_data_folder = os.path.join(_path, s1.netloc)
             if not os.path.isdir(_site_data_folder):
                 os.mkdir(_site_data_folder)
@@ -51,7 +49,7 @@ def main():
             with open(os.path.join(_domains_dir, s1.netloc + '.txt'), newline='') as f:
                 _domains = csv.reader(f, delimiter=',')
                 _domains = [x for x in _domains][0]
-            _domains = [x[:-1] for x in _domains[:-1]]       
+            _domains = [x.rstrip('.') for x in _domains if x[:-1]]    
             _domains.sort()
             ### ping Delays
             netp = webDnsSetup.ping_delays(_domains, default_net_profile)
@@ -63,18 +61,16 @@ def main():
             ### DNS delays
             time.sleep(5)
             dnsHandler = webDnsSetup.setup_dns(_domains)
-            #webDnsSetup.setup_webserver(_domains, _site_recorded)
-            webDnsSetup.setup_replay(_domains)
-            time.sleep(60)
-            for run_no in range(1):
+            webDnsSetup.setup_replay(_domains, archive_file)
+            time.sleep(30)
+            for run_no in range(runs):
                 _run_data_folder = os.path.join(_site_data_folder, 'run_' + str(run_no))
                 if not os.path.isdir(_run_data_folder):
                     os.mkdir(_run_data_folder)
                     _subfolders = ['trace', 'screenshot', 'analysis', 'summary']
                     for folder in _subfolders:
                         os.mkdir(os.path.join(_run_data_folder, folder))
-                logging.info('Current profile: ' + default_net_profile['device_type'] + ' - ' + default_net_profile['name'] + ' run_no: ' + str(run_no) + ' site: ' + _site)
-                os.system('pkill node')
+                print('Current profile: ' + default_net_profile['device_type'] + ' - ' + default_net_profile['name'] + ' run_no: ' + str(run_no) + ' site: ' + _site)
                 time.sleep(15)
 
                 _trace_folder = os.path.join(_run_data_folder, 'trace')
@@ -86,7 +82,7 @@ def main():
                 logging.info(_trace_file, _screenshot_file, _summary_file)
                 time.sleep(5)
                 try:
-                    node = 'nodejs'
+                    node = 'node'
                     _node_cmd = [node, 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
                     _cmd =  _node_cmd
                     subprocess.call(_cmd, timeout = 110)
@@ -94,11 +90,17 @@ def main():
                     print("Timeout:  ", _site, run_no)
                     with open (os.path.join(_site_data_folder, 'log.txt'), 'w+') as _log:
                         _log.write("Timed out:  " +  _site + ' ' +  str(run_no) + '\n')
-                time.sleep(1000)
-            dnsHandler.kill()
+                finally:
+                    os.system('pkill node')
+            os.system('pkill wpr')
+            dnsHandler.terminate()
             time.sleep(5)
     webDnsSetup.clear_ip_tables()
     stop = timeit.default_timer()
-    logging.info(100*'-' + '\nTotal time: ' + str(stop -start)) 
+    logging.info(100*'-' + '\nTotal time: ' + str(stop -start))
+    _change_resolv_conf('8.8.8.8')
+
 if __name__ == '__main__':
-    main()
+    # Get command line arguments
+    domains_file = sys.argv[1]
+    main(domains_file)
