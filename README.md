@@ -36,7 +36,7 @@ The following directory structure is assumed:
   
 #### Node.Js Modules
 
-    npm install chrome-remote-interface@v0.23.3
+    npm install
     
 Note: ```nodejs``` must be in your $PATH
 
@@ -47,19 +47,17 @@ The following data files are required:
     --ripe/
     ----ping_data
     ----dns_data
+    --domains_list/
+    --"All domain hostname files"
     
 Runtime
 -----
 
-#### Chrome
-
-Run chrome with remote debugging port 9222
-
-    google-chrome-stable --remote-debugging-port=9222
-
 #### Main Program
 
-    [sudo -E] python3 main.py
+    [sudo -E] python3 main.py sitesFile
+
+```sitesFile``` is a file containing all of the websites to load.
 
 Note1: This program will modify your _/etc/resolv.conf_ file. Please make sure you have a backup.
 
