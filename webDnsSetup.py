@@ -134,9 +134,9 @@ def setup_replay(domain_list, _archive):
         # Create the unique archive for this domain
         # This is an optimization for RAM
         newArchive = 'archives/' + domain + '_archive.wprgo'
-        result = subprocess.run([_go, 'run', 'filterarchive.go', _archive, newArchive, domain])
-        if result.returncode:
-            print('We have problems!!!')
+        # result = subprocess.run([_go, 'run', 'filterarchive.go', _archive, newArchive, domain])
+        # if result.returncode:
+        #     print('We have problems!!!')
 
         # Run the replay server
         replay_process = subprocess.Popen(['ip', 'netns', 'exec', netns_b, _go, 'run', _src + 'wpr.go', 'replay',_host,  _http_port, _https_port, _cert, _key, _inject, newArchive], shell=False)
@@ -228,7 +228,6 @@ def setup_webserver(domain_list, _src):
 
 def ping_delays(domains, net_profile):
     f = open("ripe/ping_data", "rb")
-    #f = open("/home/jnejati/PLTSpeed/ripe/us_ping_data_22778", "rb")
     netp = {}
     try:
         unpickler = pickle.Unpickler(f)
@@ -236,7 +235,7 @@ def ping_delays(domains, net_profile):
     except EOFError:
         pass    
     # Todo: Remove this from being hardcoded
-    _probeId = 30516 #DZ
+    _probeId = 13805 #AO
 
     for _d in domains:
         _ext = tldextract.extract(_d)
@@ -293,7 +292,6 @@ def extract_domains(domains):
 def setup_dns(domains):
     domains_dump_file = 'zones/domains.pickle'
     _d_ip_dict = extract_domains(domains)
-    #print(_d_ip_dict)
     populate_zone_file(_d_ip_dict) 
     print(domains, type(domains))
     with open(domains_dump_file, 'wb') as df:

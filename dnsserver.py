@@ -10,8 +10,7 @@ from textwrap import wrap
 from time import sleep
 
 from dnslib import DNSLabel, QTYPE, RR, dns
-from dnslib.proxy import ProxyResolver
-from dnslib.server import DNSServer
+from dnslib.server import DNSServer, BaseResolver
 
 import pickle
 from ripe.atlas.sagan import PingResult
@@ -84,9 +83,8 @@ class Record:
         return str(self.rr)
 
 
-class Resolver(ProxyResolver):
+class Resolver(BaseResolver):
     def __init__(self, upstream, zone_file, delay_dict):
-        super().__init__(upstream, 53, 5)
         self.records = self.load_zones(zone_file)
         self.delay_dict = delay_dict
 
@@ -115,11 +113,13 @@ class Resolver(ProxyResolver):
                     args = tuple(json.loads(args_))
                 else:
                     args = (args_,)
+                # logger.info("Zone record name " + str(rname))
                 record = Record(rname, rtype, args)
                 zones.append(record)
                 logger.info(' %2d: %s', len(zones), record)
             except Exception as e:
-                raise RuntimeError('Error processing line ({e.__class__.__name__}: {e}) "{line.strip()}"') from e
+                logger.exception(e)
+                # raise RuntimeError('Error processing line ({e.__class__.__name__}: {e}) "{line.strip()}"') from e
         logger.info('%d zone resource records generated from zone file', len(zones))
         return zones
 
@@ -146,9 +146,9 @@ class Resolver(ProxyResolver):
                 sleep(self.delay_dict[str(request.q.qname)]/1000.0)
             logger.info('found higher level SOA resource for %s[%s]', request.q.qname, type_name)
             return reply
-
-        logger.info('no local zone found, proxying %s[%s]', request.q.qname, type_name)
-        return super().resolve(request, handler)
+        
+        logger.error('no local zone found, proxying %s[%s]', request.q.qname, type_name)
+        return reply
 
 
 def handle_sig(signum, frame):
@@ -160,7 +160,7 @@ def handle_sig(signum, frame):
 
 def dns_delay(domains):
     # Todo: Remove hardcoding of the probe
-    _probeId = 30516 #DZ
+    _probeId = 13805 #AO
     _file = open('ripe/dns_data', 'rb')
     #_file = open('/home/jnejati/PLTSpeed/ripe/us_dns_data_22778', 'rb')
     pcl = pickle.Unpickler(_file)
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     delay_dict = dns_delay(_domains)
     port = int(os.getenv('PORT', 53))
     address = '127.0.0.1'
-    upstream = os.getenv('UPSTREAM', '8.8.8.8')
+    upstream = os.getenv('UPSTREAM', None)
     zone_file = Path(os.getenv('ZONE_FILE', 'zones/zones.txt'))
     resolver = Resolver(upstream, zone_file, delay_dict)
     udp_server = DNSServer(resolver, address=address,  port=port)

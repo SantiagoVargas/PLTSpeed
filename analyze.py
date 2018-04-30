@@ -7,24 +7,15 @@ import time
 import logging
 import coloredlogs
 import trace_parser_modular3 as tp
+import sys
 coloredlogs.install(level='INFO')
 
 #_command = '/home/jnejati/PLTSpeed/analysis/trace_parser.py'
 #logging.getLogger().setLevel(logging.INFO)
-_experiment_dir = '/home/jnejati/PLTSpeed/desktop_ustest1'
-_experiment_dir = '/home/jnejati/PLTSpeed/desktop_zatest1'
+_experiment_dir = sys.argv[1]
 _all_dirs = os.listdir(_experiment_dir)
 _all_dirs.sort()
-_exclude_list = ['punchng.com'
-, 'iroking.com'
-, 'www.absa.co.za'
-,'www.almasryalyoum.com'
-,'www.amazon.com'
-,'www.baidu.com'
-,'www.facebook.com'
-,'www.ghanaweb.com'
-,'www.google.co.za'
-]
+_exclude_list = []
 working_dirs = [x for x in _all_dirs if x not in _exclude_list]
 #working_dirs = ['www.statefarm.com']
 for _site_dir in working_dirs:
@@ -56,12 +47,15 @@ for _site_dir in working_dirs:
             logging.info('Analyzing ' + _run_no + ' site: ' + _site_dir)
             #subprocess.call([_command, '-vvv',  '-t', _trace_file, '-o', _output_file, '-w', _waterfall_file], timeout = 300)
             trace = tp.Trace(_trace_file)
-            _result, _start_ts, _cpu_times = trace.analyze()
-            if not _result or not _start_ts or not _cpu_times:
-                logging.warning('Incomplet trace file: ' + _file )
-                continue
-            _load_time = round(((float(_time['load'])* 1000000)  - float(_start_ts)) / 1000, 2)
-            _result.insert(0, {'load': _load_time, 'cpu_time': _cpu_times['total_usecs']})
-            trace.WriteJson(_output_file, _result)
+            try:
+                _result, _start_ts, _cpu_times = trace.analyze()
+                if not _result or not _start_ts or not _cpu_times:
+                    logging.warning('Incomplet trace file: ' + _file )
+                    continue
+                _load_time = round(((float(_time['load'])* 1000000)  - float(_start_ts)) / 1000, 2)
+                _result.insert(0, {'load': _load_time, 'cpu_time': _cpu_times['total_usecs']})
+                trace.WriteJson(_output_file, _result)
+            except:
+                print('Failed to analyze', _site_dir, _run_no)
     with open('analyzed_sofar.txt', 'a') as _a:
         _a.write(_site_dir.split('/')[-1] + '\n')

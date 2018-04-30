@@ -24,12 +24,12 @@ def _change_resolv_conf(ip):
         _f.write('nameserver         '+str(ip)+'\n')
 
 
-def main(input_file):
-    runs = 4
+def main(input_file, runs, launchChrome = False):
     start = timeit.default_timer()
     _domains_dir = 'domains_list/'
-    archive_file = '/home/savargas/DevRegions/data/02_03_18_US_sites/recordings/recording5/archive.wprgo'
-    config_file = 'confs/netProfiles.json'
+    archive_file = '/home/savargas/DevRegions/data/02_26_18_Africa_sites/testbed/recordings/recording1/archive.wprgo'
+    # archive_file = "/home/savargas/DevRegions/data/02_03_18_US_sites/testbed/recordings/recording1/archive.wprgo"
+    config_file = 'confs/netProfiles.2g.json'
     _change_resolv_conf('127.0.0.1')
     with open(config_file, 'r') as f:
         default_net_profile = json.load(f)[0]
@@ -79,12 +79,14 @@ def main(input_file):
                 _trace_file = os.path.join(_trace_folder, str(run_no) + '_' + s1.netloc)
                 _screenshot_file = os.path.join(_screenshot_folder, str(run_no) + '_' + s1.netloc)
                 _summary_file = os.path.join(_summary_folder, str(run_no) + '_' + s1.netloc)
+                _launch_chrome = str(launchChrome)
                 logging.info(_trace_file, _screenshot_file, _summary_file)
                 time.sleep(5)
                 try:
                     node = 'node'
-                    _node_cmd = [node, 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file]
+                    _node_cmd = [node, 'chrome_launcher.js', _site,  _trace_file, _summary_file, _screenshot_file, _launch_chrome]
                     _cmd =  _node_cmd
+                    # print("Node Command", _cmd)
                     subprocess.call(_cmd, timeout = 110)
                 except subprocess.TimeoutExpired:
                     print("Timeout:  ", _site, run_no)
@@ -103,4 +105,6 @@ def main(input_file):
 if __name__ == '__main__':
     # Get command line arguments
     domains_file = sys.argv[1]
-    main(domains_file)
+    runs = int(sys.argv[2])
+    mobile_flag = sys.argv[3].lower() == "true"
+    main(domains_file, runs, mobile_flag)

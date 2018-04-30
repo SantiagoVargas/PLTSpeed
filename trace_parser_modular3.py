@@ -590,7 +590,7 @@ class Trace():
                 raise Exception('Unknown network name in net_trace')
 
     def is_balanced(self, a_list):
-        my_list = copy.deepcopy(a_list)
+        my_list = a_list
         t_stack = []
         for i in range(len(my_list)):
             if my_list[i]['ph'] == 'B':
@@ -1126,9 +1126,7 @@ class Trace():
         for _item in self.all_modified:
             self.all_modified_dict[_item[0]] = _item[1]
         _tmp_merged = max_net_time + max_load_time + max_script_time
-        self.last_activity = sorted(_tmp_merged, key=lambda tup: tup[1], reverse=True)
-        # print(_tmp_merged)
-        # print('Last activity: ' + str(self.last_activity[0]))
+        self.last_activity = sorted(_tmp_merged, key=lambda tup: tup[1], reverse=True)[0]
 
     def order_layout(self):
         i = 0
@@ -1315,8 +1313,7 @@ class Trace():
             if _nodeId.startswith('Networking') or _nodeId.startswith('Loading') or _nodeId.startswith('Scripting'):
                 if _nodeId.startswith('Networking'):
                     if _nodeData['fromScript'] in ['Null', None, ''] and _nodeData['startTime'] > \
-                            self.G.node[_parse0Id][
-                                'startTime']:
+                            self.G.node[_parse0Id]['startTime']:
                         _parseID = self.find_parse_id(_nodeData)
                         if _parseID in ['', None]:
                             _parseID = _parse0Id
@@ -1681,33 +1678,6 @@ class Trace():
         elif mode == 'lib':
             return self.output
 
-    def update_nodeData(self, _nodeId, _delta, _function):
-        self.all_modified_dict[_nodeId]['startTime'] -= _delta
-        self.all_modified_dict[_nodeId]['endTime'] -= _delta
-        self.all_modified_dict[_nodeId]['endTime'] = _function(_nodeId)
-
-    def _compression(self, _nodeId):
-        _startTime = self.all_modified_dict[_nodeId]['startTime']
-        _endTime = self.all_modified_dict[_nodeId]['endTime']
-        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
-            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
-            #_compressable = self.javascript_type_list + self.css_type_list + self.text_type_list
-            _compressable = self.javascript_type_list
-            if _mimeType in _compressable:
-                return _startTime + ((_endTime - _startTime) / 15.7)
-        return _endTime
-
-    def _caching(self, _nodeId):
-        _startTime = self.all_modified_dict[_nodeId]['startTime']
-        _endTime = self.all_modified_dict[_nodeId]['endTime']
-        if _nodeId.startswith('Networking') and _nodeId not in self.mark:
-            _mimeType = self.all_modified_dict[_nodeId]['mimeType']
-            if _mimeType.startswith('image'):
-                print(_nodeId)
-                return _startTime + 2
-        return _endTime
-
-
     def shift_time(self, _nodeId, _function):
         if _nodeId not in self.deps_parent:  # Orphans
             self.all_modified_dict[_nodeId]['endTime'] = _function(_nodeId)
@@ -1772,14 +1742,14 @@ class Trace():
         ###
         _nodeId_list = [x[0] for x in self.all_modified]
         _nodeId_list.reverse()
-        for _nodeId in _nodeId_list:
-            if _nodeId not in self.mark:
-                #self.shift_time(_nodeId, self._compression)
-                self.shift_time(_nodeId, self._compression)
-        self.shift_deps()
+        # for _nodeId in _nodeId_list:
+        #     if _nodeId not in self.mark:
+        #         #self.shift_time(_nodeId, self._compression)
+        #         self.shift_time(_nodeId, self._compression)
+        # self.shift_deps()
         download_0, parse_0 = self.find_download0()
-        #self.find_critical_path(self.last_activity[0][0])  # , download_0[0])
-        self.find_critical_path_mod(self.last_activity[0][0])  # , download_0[0])
+        self.find_critical_path(self.last_activity[0])  # , download_0[0])
+        # self.find_critical_path_mod(self.last_activity[0])  # , download_0[0])
         self.critical_path.reverse()
         print('Critical Path: ' + str(self.critical_path))
         return self.WriteOutputlog_new(mode='lib'), self.start_time, self.cpu

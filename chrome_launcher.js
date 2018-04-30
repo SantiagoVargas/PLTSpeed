@@ -9,24 +9,69 @@ var rawEvents = [];
 var myArgs = process.argv.slice(2);
 
 (async function () {
-    // Todo: Add a flag to allow for mobile launches
-    let chromeFlags = ['--incognito', '--ignore-certificate-errors', '--no-sandbox'];
-    const chrome = await chromeLauncher.launch({
-        chromeFlags: chromeFlags
-    });
-    console.log(`Port ${chrome.port}`);
+    let argLaunchChrome = myArgs[4].toLowerCase() === "true";
+    let chrome;
+    if (argLaunchChrome) {
+        let chromeFlags = ['--incognito', '--ignore-certificate-errors', '--no-sandbox'];
+        chrome = await chromeLauncher.launch({
+            chromeFlags: chromeFlags
+        });
+    }
+    let devtoolsPort = chrome ? chrome.port : 9222;
+    console.log(`Connecting to Devtools on Port ${devtoolsPort}`);
     const client = await CDP({
-        port: chrome.port
+        port: devtoolsPort,
+        local: true // Todo: This is workaround for a Chrome bug? Check up on this later
     });
     // Get and enable domains
-    const { Network, Page, Tracing } = client;
+    const { Network, Page, Tracing, Emulation } = client;
     await Page.enable();
+    // Set network settings
     await Network.enable();
-    Network.setCacheDisabled = true;
+    await Network.setCacheDisabled({ cacheDisabled: true });
     await Network.clearBrowserCache();
     await Network.clearBrowserCookies();
-    //var p3 = Network.emulateNetworkConditions({offline: false, latency: 5, downloadThroughput: 20000000, uploadThroughput: 20000000});
-    //var p4 = Promise.all([p1, p2, p3]).then(function(){
+    let conditions_unlimited = {
+        offline: false,
+        latency: 0,
+        downloadThroughput: -1,
+        uploadThroughput: -1
+    };
+    // 2g conditions taken from EDGE(2.5G) wikipedia page
+    let conditions_2g = {
+        offline: false,
+        latency: 300,
+        downloadThroughput: 0.4 * 1000 * 1000 / 8,  // 400kbps
+        uploadThroughput: 0.2 * 1000 * 1000 / 8     // 200kbps
+    };
+    // 3G and 4G Conditions taken from OpenSignal India
+    let conditions_3g = {
+        offline: false,
+        latency: 160,
+        downloadThroughput: 2.5 * 1000 * 1000 / 8,  // 2.5mbps
+        uploadThroughput: 1.5 * 1000 * 1000 / 8     // 1.5mbps
+    };
+    let conditions_4g = {
+        offline: false,
+        latency: 70,
+        downloadThroughput: 7.5 * 1000 * 1000 / 8,  // 7.5mbps
+        uploadThroughput: 5.5 * 1000 * 1000 / 8     // 5.5mbps
+    };
+    await Network.emulateNetworkConditions(conditions_2g);
+
+    // Todo: Remove this when using mobile sites
+    // Mobile overrides for loading desktop sites
+    await Network.setUserAgentOverride({
+        userAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.46 Safari/537.36"
+    });
+    await Emulation.setDeviceMetricsOverride({
+        width: 980,
+        height: 1524,
+        deviceScaleFactor: 2,
+        mobile: false
+    });
+
+    // Start Tracing
     await Tracing.start({
         "categories": TRACE_CATEGORIES.join(','),
         "options": "sampling-frequency=10000"  // 1000 is default and too slow.
@@ -62,8 +107,14 @@ var myArgs = process.argv.slice(2);
         console.log('Trace file: ' + traceFile);
         //console.log('You can open the trace file in DevTools Timeline panel. (Turn on experiment: Timeline tracing based JS profiler)\n')
         summary.report(summaryFile); // superfluous
-        client.close();
-        chrome.kill();
+        // Todo: Refactor hardcoded timeout
+        let postLoadTimeout = 1000;
+        setTimeout(() => {
+            console.log("Killing Client/Chrome...")
+            client.close();
+            if (chrome)
+                chrome.kill();
+        }, postLoadTimeout);
     });
     //dataCOllected event send { "name": "value", "type": "array", "items": { "type": "object" } parameter as input
     Tracing.dataCollected(function (data) {

@@ -46,7 +46,7 @@ func filterArchive(c *cli.Context) {
 	}
 
 	// Write new archive
-	newArchiveFile, err := os.OpenFile(c.Args().Get(1), os.O_WRONLY|os.O_CREATE, os.FileMode(0777))
+	newArchiveFile, err := os.OpenFile(c.Args().Get(1), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0777))
 	if err != nil {
 		fmt.Println("Error opening output file:", err)
 		os.Exit(1)
@@ -61,6 +61,7 @@ func filterArchive(c *cli.Context) {
 		fmt.Println("Error closing the new file", closeErr)
 		os.Exit(1)
 	}
+	fmt.Println("Finished filtering archive")
 }
 
 func main() {
